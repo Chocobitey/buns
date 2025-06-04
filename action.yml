@@ -1,61 +1,40 @@
 name: 🥯 Bitzy on Buns
-description: "Release a Bitey package automaticly."
+description: "Release a Bitey package automatically."
 author: "Chocobitey"
 
-icon: arrow-up-circle
-color: blue
+inputs:
+  name:
+    description: "The name of the package"
+    required: true
+  version:
+    description: "The version to release"
+    required: true
 
-on:
-  release:
-    types: [published]
+runs:
+  using: "composite"
+  steps:
+    - name: 🧾 Checkout source
+      uses: actions/checkout@v3
 
-permissions:
-  contents: write
-  packages: write
+    - name: 📦 Create .choco.pkg
+      shell: bash
+      run: |
+        mkdir -p release
+        tar -czf "release/${{ inputs.name }}-${{ inputs.version }}.choco.pkg" *
 
-jobs:
-  build:
-    name: 🏗️ Build
-    runs-on: ubuntu-latest
+    - name: 📤 Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: choco-pkg
+        path: release/${{ inputs.name }}-${{ inputs.version }}.choco.pkg
 
-    outputs:
-      version: ${{ steps.setver.outputs.version }}
+    - name: 🧾 Download build artifact (again for release)
+      uses: actions/download-artifact@v4
+      with:
+        name: choco-pkg
+        path: release
 
-    steps:
-      - name: 🧾 Checkout source
-        uses: actions/checkout@v3
-
-      - name: 🏷️ Set release version
-        id: setver
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: 📦 Create .choco.pkg
-        run: |
-          mkdir -p release
-          tar -czf "release/${{ vars.NAME }}-${VERSION}.choco.pkg" *
-
-      - name: 📤 Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: choco-pkg
-          path: release/${{ vars.NAME }}-${{ steps.setver.outputs.version }}.choco.pkg
-
-  release:
-    name: 📤 Release
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: 🧾 Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: choco-pkg
-          path: release
-
-      - name: 📤 Upload Package to GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: release/${{ vars.NAME }}-${{ needs.build.outputs.version }}.choco.pkg
+    - name: 📤 Upload Package to GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: release/${{ inputs.name }}-${{ inputs.version }}.choco.pkg
