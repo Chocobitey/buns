@@ -1,4 +1,7 @@
 name: 🥯 Bitzy on Buns
+description: "Release a Bitey package automaticly."
+icon: arrow-up-circle
+color: blue
 
 on:
   release:
